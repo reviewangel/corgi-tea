@@ -14,7 +14,7 @@ export type CartItem = {
   id: string
   menuItemId: string
   name: string
-  size?: 'small' | 'large'
+  size?: 'small' | 'medium' | 'large'
   sugar?: string
   ice?: string
   toppings?: string[]
