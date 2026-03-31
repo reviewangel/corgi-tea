@@ -50,14 +50,14 @@ export default function CheckoutModal({ cart, total, onClose, onSuccess }: Props
             <label className="text-xs font-bold text-[#6B4226] uppercase tracking-wide block mb-1">Your Name *</label>
             <input type="text" value={name} onChange={e => setName(e.target.value)}
               placeholder="So we can call your order"
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#FF6B35]" />
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#D62B2B]" />
           </div>
 
           <div>
             <label className="text-xs font-bold text-[#6B4226] uppercase tracking-wide block mb-1">Phone (optional)</label>
             <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
               placeholder="For order updates"
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#FF6B35]" />
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#D62B2B]" />
           </div>
 
           <div>
@@ -66,7 +66,7 @@ export default function CheckoutModal({ cart, total, onClose, onSuccess }: Props
               {(['cash', 'card'] as const).map(p => (
                 <button type="button" key={p} onClick={() => setPaymentMethod(p)}
                   className={`flex-1 py-3 rounded-xl text-sm font-bold border-2 transition ${
-                    paymentMethod === p ? 'bg-[#FF6B35] text-white border-[#FF6B35]' : 'border-gray-200 text-[#1A0F00]'
+                    paymentMethod === p ? 'bg-[#D62B2B] text-white border-[#D62B2B]' : 'border-gray-200 text-[#1A0F00]'
                   }`}>
                   {p === 'cash' ? '💵 Cash at Pickup' : '💳 Card at Pickup'}
                 </button>
@@ -78,7 +78,7 @@ export default function CheckoutModal({ cart, total, onClose, onSuccess }: Props
             <label className="text-xs font-bold text-[#6B4226] uppercase tracking-wide block mb-1">Order Notes (optional)</label>
             <textarea value={notes} onChange={e => setNotes(e.target.value)}
               placeholder="Allergies, special requests..."
-              className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm resize-none focus:outline-none focus:border-[#FF6B35]"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm resize-none focus:outline-none focus:border-[#D62B2B]"
               rows={2} />
           </div>
 
@@ -93,14 +93,14 @@ export default function CheckoutModal({ cart, total, onClose, onSuccess }: Props
             ))}
             <div className="flex justify-between font-black text-[#1A0F00] pt-2 border-t border-[#FFB347]/30">
               <span>Total</span>
-              <span className="text-[#FF6B35]">${total.toFixed(2)}</span>
+              <span className="text-[#D62B2B]">${total.toFixed(2)}</span>
             </div>
           </div>
 
           {error && <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">⚠️ {error}</p>}
 
           <button type="submit" disabled={submitting}
-            className="w-full bg-[#FF6B35] text-white font-black py-4 rounded-2xl text-lg disabled:opacity-60">
+            className="w-full bg-[#D62B2B] text-white font-black py-4 rounded-2xl text-lg disabled:opacity-60">
             {submitting ? 'Placing Order…' : `Place Order — $${total.toFixed(2)}`}
           </button>
         </form>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { MenuItem, CartItem } from '@/lib/types'
+import { SIZES } from '@/lib/menu'
 
 type Props = {
   item: MenuItem
@@ -14,16 +15,20 @@ type Props = {
 
 export default function ItemModal({ item, sugarLevels, iceLevels, toppings, onAdd, onClose }: Props) {
   const isTea = item.category === 'bubble_tea'
-  const [size, setSize] = useState<'small' | 'large'>('large')
+  const [size, setSize] = useState<'small' | 'medium' | 'large'>('large')
   const [sugar, setSugar] = useState(sugarLevels[0])
   const [ice, setIce] = useState(iceLevels[0])
   const [selectedToppings, setSelectedToppings] = useState<string[]>([])
   const [special, setSpecial] = useState('')
   const [qty, setQty] = useState(1)
 
-  const basePrice = isTea
-    ? (size === 'large' ? (item.price_large ?? 0) : (item.price_small ?? 0))
-    : (item.price_small ?? 0)
+  function getSizePrice(s: string) {
+    if (s === 'small')  return item.price_small ?? 0
+    if (s === 'medium') return (item.price_small ?? 0) + 0.50
+    return item.price_large ?? item.price_small ?? 0
+  }
+
+  const basePrice = isTea ? getSizePrice(size) : (item.price_small ?? 0)
   const toppingPrice = selectedToppings.reduce((s, t) => s + (toppings.find(x => x.name === t)?.price ?? 0), 0)
   const unitPrice = basePrice + toppingPrice
 
@@ -59,16 +64,17 @@ export default function ItemModal({ item, sugarLevels, iceLevels, toppings, onAd
         </div>
 
         {/* Size (tea only) */}
-        {isTea && item.price_small && item.price_large && (
+        {isTea && (
           <div className="mb-5">
-            <p className="text-xs font-bold text-[#6B4226] uppercase tracking-wide mb-2">Size</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Size</p>
             <div className="flex gap-2">
-              {(['small', 'large'] as const).map(s => (
+              {(['small', 'medium', 'large'] as const).map(s => (
                 <button key={s} onClick={() => setSize(s)}
-                  className={`flex-1 py-3 rounded-xl text-sm font-bold border-2 transition ${
-                    size === s ? 'bg-[#FF6B35] text-white border-[#FF6B35]' : 'border-gray-200 text-[#1A0F00]'
+                  className={`flex-1 py-2.5 rounded-xl text-xs font-bold border-2 transition ${
+                    size === s ? 'bg-[#D62B2B] text-white border-[#D62B2B]' : 'border-gray-200 text-gray-700'
                   }`}>
-                  {s === 'small' ? `Small — $${item.price_small?.toFixed(2)}` : `Large — $${item.price_large?.toFixed(2)}`}
+                  <span className="block capitalize">{s}</span>
+                  <span className="block font-normal">${getSizePrice(s).toFixed(2)}</span>
                 </button>
               ))}
             </div>
@@ -83,7 +89,7 @@ export default function ItemModal({ item, sugarLevels, iceLevels, toppings, onAd
               {sugarLevels.map(s => (
                 <button key={s} onClick={() => setSugar(s)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold border-2 transition ${
-                    sugar === s ? 'bg-[#FF6B35] text-white border-[#FF6B35]' : 'border-gray-200 text-[#1A0F00]'
+                    sugar === s ? 'bg-[#D62B2B] text-white border-[#D62B2B]' : 'border-gray-200 text-[#1A0F00]'
                   }`}>{s}</button>
               ))}
             </div>
@@ -98,7 +104,7 @@ export default function ItemModal({ item, sugarLevels, iceLevels, toppings, onAd
               {iceLevels.map(i => (
                 <button key={i} onClick={() => setIce(i)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold border-2 transition ${
-                    ice === i ? 'bg-[#FF6B35] text-white border-[#FF6B35]' : 'border-gray-200 text-[#1A0F00]'
+                    ice === i ? 'bg-[#D62B2B] text-white border-[#D62B2B]' : 'border-gray-200 text-[#1A0F00]'
                   }`}>{i}</button>
               ))}
             </div>
@@ -129,7 +135,7 @@ export default function ItemModal({ item, sugarLevels, iceLevels, toppings, onAd
           <p className="text-xs font-bold text-[#6B4226] uppercase tracking-wide mb-2">Special Instructions</p>
           <textarea value={special} onChange={e => setSpecial(e.target.value)}
             placeholder="Any special requests?"
-            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:border-[#FF6B35]"
+            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:border-[#D62B2B]"
             rows={2} />
         </div>
 
@@ -141,7 +147,7 @@ export default function ItemModal({ item, sugarLevels, iceLevels, toppings, onAd
             <button onClick={() => setQty(q => q + 1)} className="text-xl font-bold text-[#1A0F00]">+</button>
           </div>
           <button onClick={handleAdd}
-            className="flex-1 bg-[#FF6B35] text-white font-black py-4 rounded-2xl text-base">
+            className="flex-1 bg-[#D62B2B] text-white font-black py-4 rounded-2xl text-base">
             Add to Cart — ${(unitPrice * qty).toFixed(2)}
           </button>
         </div>

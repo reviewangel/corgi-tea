@@ -15,12 +15,17 @@ export const DEFAULT_MENU = {
   ],
 }
 
-export const SUGAR_LEVELS = ['100% Sugar', '75% Sugar', '50% Sugar', '25% Sugar', '0% Sugar']
+export const SIZES = [
+  { key: 'small',  label: 'Small',  priceField: 'price_small' },
+  { key: 'medium', label: 'Medium', priceField: 'price_small', priceAdd: 0.50 },
+  { key: 'large',  label: 'Large',  priceField: 'price_large' },
+]
+
+export const SUGAR_LEVELS = ['100%', '75%', '50%', '25%', '0% (No Sugar)']
 export const ICE_LEVELS = ['Regular Ice', 'Less Ice', 'No Ice', 'Warm', 'Hot']
 export const TOPPINGS = [
-  { name: 'Boba Pearls', price: 0.75 },
+  { name: 'Boba Pearls',   price: 0.75 },
   { name: 'Coconut Jelly', price: 0.75 },
-  { name: 'Lychee Jelly', price: 0.75 },
-  { name: 'Pudding', price: 0.75 },
-  { name: 'Grass Jelly', price: 0.75 },
+  { name: 'Popping Boba',  price: 0.75 },
+  { name: 'Red Beans',     price: 0.75 },
 ]

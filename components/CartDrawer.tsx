@@ -41,7 +41,7 @@ export default function CartDrawer({ cart, onUpdate, onClose, onCheckout }: Prop
                 {item.specialInstructions && (
                   <p className="text-xs text-gray-400 italic mt-0.5">"{item.specialInstructions}"</p>
                 )}
-                <p className="text-[#FF6B35] font-bold text-sm mt-1">${(item.unitPrice * item.quantity).toFixed(2)}</p>
+                <p className="text-[#D62B2B] font-bold text-sm mt-1">${(item.unitPrice * item.quantity).toFixed(2)}</p>
               </div>
               <div className="flex items-center gap-2 bg-white rounded-xl px-2 py-1 border border-gray-200">
                 <button onClick={() => updateQty(item.id, item.quantity - 1)} className="text-lg font-bold text-[#1A0F00] w-6">−</button>
@@ -55,10 +55,10 @@ export default function CartDrawer({ cart, onUpdate, onClose, onCheckout }: Prop
         <div className="mt-4 pt-4 border-t border-gray-100">
           <div className="flex justify-between items-center mb-3">
             <span className="font-bold text-[#1A0F00]">Total</span>
-            <span className="text-xl font-black text-[#FF6B35]">${total.toFixed(2)}</span>
+            <span className="text-xl font-black text-[#D62B2B]">${total.toFixed(2)}</span>
           </div>
           <button onClick={onCheckout}
-            className="w-full bg-[#FF6B35] text-white font-black py-4 rounded-2xl text-lg">
+            className="w-full bg-[#D62B2B] text-white font-black py-4 rounded-2xl text-lg">
             Checkout →
           </button>
         </div>
