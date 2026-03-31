@@ -43,8 +43,8 @@ export default function DashboardPage() {
     // Real-time new orders
     const ordersChannel = getDb()
       .channel('dashboard-orders')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => fetchOrders())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => fetchOrders())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'corgi_orders' }, () => fetchOrders())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'corgi_order_items' }, () => fetchOrders())
       .subscribe()
 
     return () => { getDb().removeChannel(ordersChannel) }
@@ -52,7 +52,7 @@ export default function DashboardPage() {
 
   async function fetchOrders() {
     const { data } = await getDb()
-      .from('orders')
+      .from('corgi_orders')
       .select('*, order_items(*)')
       .order('created_at', { ascending: false })
       .limit(100)
@@ -61,24 +61,24 @@ export default function DashboardPage() {
 
   async function fetchMenu() {
     const { data } = await getDb()
-      .from('menu_items')
+      .from('corgi_menu_items')
       .select('*')
       .order('display_order')
     setMenuItems(data ?? [])
   }
 
   async function updateStatus(orderId: string, status: string) {
-    await getDb().from('orders').update({ status }).eq('id', orderId)
+    await getDb().from('corgi_orders').update({ status }).eq('id', orderId)
     fetchOrders()
   }
 
   async function toggleAvailability(itemId: string, available: boolean) {
-    await getDb().from('menu_items').update({ available }).eq('id', itemId)
+    await getDb().from('corgi_menu_items').update({ available }).eq('id', itemId)
     fetchMenu()
   }
 
   async function toggleSoldOut(itemId: string, soldOut: boolean) {
-    await getDb().from('menu_items').update({ sold_out: soldOut }).eq('id', itemId)
+    await getDb().from('corgi_menu_items').update({ sold_out: soldOut }).eq('id', itemId)
     fetchMenu()
   }
 

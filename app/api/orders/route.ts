@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
     const db = getSupabaseAdmin()
 
     const { data: order, error: orderError } = await db
-      .from('orders')
+      .from('corgi_orders')
       .insert({
         customer_name: name,
         customer_phone: phone || null,
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
       special_instructions: item.specialInstructions ?? null,
     }))
 
-    const { error: itemsError } = await db.from('order_items').insert(items)
+    const { error: itemsError } = await db.from('corgi_order_items').insert(items)
     if (itemsError) return NextResponse.json({ error: itemsError.message }, { status: 500 })
 
     // Label print trigger will go here once printer model is confirmed

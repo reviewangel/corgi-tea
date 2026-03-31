@@ -33,7 +33,7 @@ export default function OrderPage() {
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
-        table: 'menu_items',
+        table: 'corgi_menu_items',
       }, (payload) => {
         setMenuItems(prev => prev.map(item =>
           item.id === payload.new.id ? { ...item, ...payload.new } : item
@@ -46,7 +46,7 @@ export default function OrderPage() {
 
   async function fetchMenu() {
     const { data } = await getDb()
-      .from('menu_items')
+      .from('corgi_menu_items')
       .select('*')
       .eq('available', true)
       .order('display_order')
