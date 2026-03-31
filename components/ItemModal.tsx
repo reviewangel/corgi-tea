@@ -15,7 +15,7 @@ type Props = {
 
 export default function ItemModal({ item, sugarLevels, iceLevels, toppings, onAdd, onClose }: Props) {
   const isTea = item.category === 'bubble_tea'
-  const [size, setSize] = useState<'small' | 'medium' | 'large'>('large')
+  const [size, setSize] = useState<'regular' | 'bottle' | 'xl'>('regular')
   const [sugar, setSugar] = useState(sugarLevels[0])
   const [ice, setIce] = useState(iceLevels[0])
   const [selectedToppings, setSelectedToppings] = useState<string[]>([])
@@ -23,9 +23,9 @@ export default function ItemModal({ item, sugarLevels, iceLevels, toppings, onAd
   const [qty, setQty] = useState(1)
 
   function getSizePrice(s: string) {
-    if (s === 'small')  return item.price_small ?? 0
-    if (s === 'medium') return (item.price_small ?? 0) + 0.50
-    return item.price_large ?? item.price_small ?? 0
+    if (s === 'regular') return item.price_small ?? 0
+    if (s === 'bottle')  return (item.price_small ?? 0) + 1.00
+    return item.price_large ?? item.price_small ?? 0  // xl
   }
 
   const basePrice = isTea ? getSizePrice(size) : (item.price_small ?? 0)
@@ -68,13 +68,18 @@ export default function ItemModal({ item, sugarLevels, iceLevels, toppings, onAd
           <div className="mb-5">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Size</p>
             <div className="flex gap-2">
-              {(['small', 'medium', 'large'] as const).map(s => (
-                <button key={s} onClick={() => setSize(s)}
+              {([
+                { key: 'regular', label: 'Regular',        oz: '24oz' },
+                { key: 'bottle',  label: 'Carry Bottle',   oz: '24oz' },
+                { key: 'xl',      label: 'XL Mug',         oz: '40oz' },
+              ] as const).map(s => (
+                <button key={s.key} onClick={() => setSize(s.key)}
                   className={`flex-1 py-2.5 rounded-xl text-xs font-bold border-2 transition ${
-                    size === s ? 'bg-[#D62B2B] text-white border-[#D62B2B]' : 'border-gray-200 text-gray-700'
+                    size === s.key ? 'bg-[#D62B2B] text-white border-[#D62B2B]' : 'border-gray-200 text-gray-700'
                   }`}>
-                  <span className="block capitalize">{s}</span>
-                  <span className="block font-normal">${getSizePrice(s).toFixed(2)}</span>
+                  <span className="block">{s.label}</span>
+                  <span className="block opacity-70 font-normal">{s.oz}</span>
+                  <span className="block font-bold">${getSizePrice(s.key).toFixed(2)}</span>
                 </button>
               ))}
             </div>

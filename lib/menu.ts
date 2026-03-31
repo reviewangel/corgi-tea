@@ -16,9 +16,9 @@ export const DEFAULT_MENU = {
 }
 
 export const SIZES = [
-  { key: 'small',  label: 'Small',  priceField: 'price_small' },
-  { key: 'medium', label: 'Medium', priceField: 'price_small', priceAdd: 0.50 },
-  { key: 'large',  label: 'Large',  priceField: 'price_large' },
+  { key: 'regular',  label: 'Regular',         oz: '24oz',  priceField: 'price_small' },
+  { key: 'bottle',   label: 'Carrying Bottle',  oz: '24oz',  priceAdd: 1.00 },
+  { key: 'xl',       label: 'XL Mug',           oz: '40oz',  priceField: 'price_large' },
 ]
 
 export const SUGAR_LEVELS = ['100%', '75%', '50%', '25%', '0% (No Sugar)']
