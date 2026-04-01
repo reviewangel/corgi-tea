@@ -16,15 +16,18 @@ const SECTIONS = [
 ]
 
 const DRINK_IMAGES: Record<string, string> = {
-  'Classic Milk Tea':      '☕',
-  'Taro Milk Tea':         '🟣',
-  'Matcha Milk Tea':       '🍵',
-  'Brown Sugar Boba':      '🧋',
-  'Strawberry Fruit Tea':  '🍓',
-  'Mango Fruit Tea':       '🥭',
-  'Passion Fruit Tea':     '🌺',
-  'Pork & Cabbage':        '🥟',
-  'Veggie Dumplings':      '🥟',
+  'Signature Milk Tea':          '⭐',
+  'Signature Dumplings':         '🥟',
+  'Milk Tea in Carrying Bottle': '🍶',
+  'Classic Milk Tea':            '☕',
+  'Taro Milk Tea':               '🟣',
+  'Matcha Milk Tea':             '🍵',
+  'Brown Sugar Boba':            '🧋',
+  'Strawberry Fruit Tea':        '🍓',
+  'Mango Fruit Tea':             '🥭',
+  'Passion Fruit Tea':           '🌺',
+  'Pork & Cabbage':              '🥟',
+  'Veggie Dumplings':            '🥟',
 }
 
 function ItemEmoji({ name }: { name: string }) {
