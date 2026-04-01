@@ -7,41 +7,51 @@ import { SUGAR_LEVELS, ICE_LEVELS, TOPPINGS } from '@/lib/menu'
 import ItemModal from '@/components/ItemModal'
 import CheckoutModal from '@/components/CheckoutModal'
 
-const CATEGORIES = [
-  { key: 'bubble_tea', label: 'Bubble Tea' },
-  { key: 'dumpling',   label: 'Dumplings' },
+type MenuItemWithSignature = MenuItem & { is_signature?: boolean }
+
+const SECTIONS = [
+  { key: 'signature', label: '⭐ Signature',  anchor: 'section-signature' },
+  { key: 'bubble_tea', label: '🧋 Bubble Tea', anchor: 'section-bubble-tea' },
+  { key: 'dumpling',   label: '🥟 Dumplings',  anchor: 'section-dumplings' },
 ]
 
-// Placeholder drink images by name keyword
 function getDrinkEmoji(name: string) {
   const n = name.toLowerCase()
-  if (n.includes('taro'))      return '🟣'
-  if (n.includes('matcha'))    return '🍵'
-  if (n.includes('strawberry'))return '🍓'
-  if (n.includes('mango'))     return '🥭'
-  if (n.includes('passion'))   return '🌺'
+  if (n.includes('taro'))       return '🟣'
+  if (n.includes('matcha'))     return '🍵'
+  if (n.includes('strawberry')) return '🍓'
+  if (n.includes('mango'))      return '🥭'
+  if (n.includes('passion'))    return '🌺'
   if (n.includes('brown sugar'))return '🧋'
-  if (n.includes('dumpling'))  return '🥟'
+  if (n.includes('dumpling') || n.includes('pork') || n.includes('veggie')) return '🥟'
   return '🧋'
 }
 
 export default function OrderPage() {
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([])
+  const [menuItems, setMenuItems] = useState<MenuItemWithSignature[]>([])
   const [cart, setCart] = useState<CartItem[]>([])
-  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null)
+  const [selectedItem, setSelectedItem] = useState<MenuItemWithSignature | null>(null)
   const [showCheckout, setShowCheckout] = useState(false)
-  const [activeCategory, setActiveCategory] = useState('bubble_tea')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
+  const [activeSection, setActiveSection] = useState('signature')
   const [orderPlaced, setOrderPlaced] = useState<{ number: number; name: string } | null>(null)
+
+  const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
+  const scrollRef = useRef<HTMLDivElement>(null)
   const supabaseRef = useRef<ReturnType<typeof createBrowserSupabase> | null>(null)
+
   function getDb() {
     if (!supabaseRef.current) supabaseRef.current = createBrowserSupabase()
     return supabaseRef.current
   }
 
   useEffect(() => {
-    getDb().from('corgi_menu_items').select('*').eq('available', true).order('display_order')
+    getDb()
+      .from('corgi_menu_items')
+      .select('*')
+      .eq('available', true)
+      .order('display_order')
       .then(({ data }) => { setMenuItems(data ?? []); setLoading(false) })
 
     const channel = getDb().channel('menu-live')
@@ -51,9 +61,36 @@ export default function OrderPage() {
     return () => { getDb().removeChannel(channel) }
   }, [])
 
-  const filtered = menuItems
-    .filter(i => i.category === activeCategory)
-    .filter(i => !search || i.name.toLowerCase().includes(search.toLowerCase()))
+  // Scroll to section when tab clicked
+  function scrollToSection(anchor: string, key: string) {
+    setActiveSection(key)
+    const el = sectionRefs.current[anchor]
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  // Update active tab on scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const sec = SECTIONS.find(s => s.anchor === entry.target.id)
+          if (sec) setActiveSection(sec.key)
+        }
+      })
+    }, { threshold: 0.3, rootMargin: '-80px 0px -60% 0px' })
+
+    Object.values(sectionRefs.current).forEach(el => { if (el) observer.observe(el) })
+    return () => observer.disconnect()
+  }, [menuItems])
+
+  const signature = menuItems.filter(i => i.is_signature)
+  const bubbleteas = menuItems.filter(i => i.category === 'bubble_tea' && !i.is_signature)
+  const dumplings = menuItems.filter(i => i.category === 'dumpling')
+
+  function filterBySearch(items: MenuItemWithSignature[]) {
+    if (!search) return items
+    return items.filter(i => i.name.toLowerCase().includes(search.toLowerCase()))
+  }
 
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0)
   const cartTotal = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0)
@@ -74,63 +111,92 @@ export default function OrderPage() {
     )
   }
 
+  function MenuRow({ item }: { item: MenuItemWithSignature }) {
+    return (
+      <button
+        onClick={() => !item.sold_out && setSelectedItem(item)}
+        className={`w-full flex items-center gap-4 px-4 py-4 text-left transition active:bg-gray-50 border-b border-gray-100 last:border-0 ${item.sold_out ? 'opacity-50' : ''}`}>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            {item.is_signature && <span className="text-yellow-500 text-xs">⭐</span>}
+            <p className="font-semibold text-gray-900 text-sm leading-snug">{item.name}</p>
+          </div>
+          {item.description && (
+            <p className="text-xs text-gray-400 mt-0.5 line-clamp-2 leading-relaxed">{item.description}</p>
+          )}
+          <p className="text-sm font-bold text-gray-800 mt-1.5">
+            ${item.price_small?.toFixed(2)}
+            {item.price_large ? ' – $' + item.price_large.toFixed(2) : ''}
+          </p>
+          {item.sold_out && <span className="text-xs text-red-500 font-medium">Sold Out</span>}
+        </div>
+        <div className="w-20 h-20 rounded-xl bg-orange-50 flex items-center justify-center text-4xl flex-shrink-0 relative">
+          {getDrinkEmoji(item.name)}
+          {!item.sold_out && (
+            <div className="absolute -bottom-1.5 -right-1.5 w-6 h-6 bg-[#D62B2B] rounded-full flex items-center justify-center shadow">
+              <span className="text-white text-lg font-black leading-none">+</span>
+            </div>
+          )}
+        </div>
+      </button>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
-
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 px-4 pt-4 pb-0 sticky top-0 z-20">
+      <header className="bg-white border-b border-gray-100 px-4 pt-4 pb-0 sticky top-0 z-20 shadow-sm">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-full bg-[#D62B2B] flex items-center justify-center text-white text-xl font-black flex-shrink-0">
-            🐾
-          </div>
+          <div className="w-10 h-10 rounded-full bg-[#D62B2B] flex items-center justify-center text-xl flex-shrink-0">🐾</div>
           <div className="flex-1">
-            <h1 className="text-base font-black text-gray-900 leading-tight">Corgi Tea</h1>
+            <h1 className="text-base font-black text-gray-900">Corgi Tea</h1>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="w-2 h-2 rounded-full bg-orange-400 inline-block"></span>
-              <span className="text-xs text-gray-500">Pickup · 5–10 Minutes</span>
+              <span className="w-2 h-2 rounded-full bg-green-400 inline-block"></span>
+              <span className="text-xs text-gray-500">Open · Pickup 5–10 min</span>
             </div>
           </div>
           {cartCount > 0 && (
             <button onClick={() => setShowCheckout(true)}
-              className="bg-[#D62B2B] text-white text-xs font-bold px-4 py-2 rounded-full flex items-center gap-1.5">
+              className="bg-[#D62B2B] text-white text-xs font-bold px-4 py-2 rounded-full flex items-center gap-1.5 flex-shrink-0">
               🛒 {cartCount} · ${cartTotal.toFixed(2)}
             </button>
           )}
         </div>
 
-        {/* Category tabs */}
+        {/* Category tabs — scroll spy */}
         <div className="flex gap-0 overflow-x-auto scrollbar-hide -mx-4 px-4">
-          {CATEGORIES.map(cat => (
-            <button key={cat.key} onClick={() => setActiveCategory(cat.key)}
+          {SECTIONS.map(sec => (
+            <button key={sec.key}
+              onClick={() => scrollToSection(sec.anchor, sec.key)}
               className={`flex-shrink-0 py-2.5 px-4 text-sm font-semibold border-b-2 transition-all whitespace-nowrap ${
-                activeCategory === cat.key
+                activeSection === sec.key
                   ? 'border-[#D62B2B] text-[#D62B2B]'
                   : 'border-transparent text-gray-400'
               }`}>
-              {cat.label}
+              {sec.label}
             </button>
           ))}
         </div>
       </header>
 
       {/* Search */}
-      <div className="px-4 py-3 bg-white border-b border-gray-50">
-        <div className="flex items-center gap-2 bg-gray-100 rounded-full px-4 py-2">
+      <div className="px-4 py-3 bg-white border-b border-gray-100">
+        <div className="flex items-center gap-2 bg-gray-100 rounded-full px-4 py-2.5">
           <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
           </svg>
           <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search menu"
-            className="bg-transparent text-sm text-gray-700 flex-1 focus:outline-none" />
+            placeholder="Search menu…"
+            className="bg-transparent text-sm text-gray-700 flex-1 focus:outline-none"/>
         </div>
       </div>
 
-      {/* Items */}
-      <main className="flex-1 pb-24">
+      {/* Full menu — all sections on one page */}
+      <main className="flex-1 pb-28">
         {loading ? (
-          <div className="flex flex-col gap-0">
-            {[1,2,3,4].map(i => (
-              <div key={i} className="flex items-center gap-4 px-4 py-4 border-b border-gray-100 animate-pulse">
+          <div className="divide-y divide-gray-100">
+            {[1,2,3,4,5].map(i => (
+              <div key={i} className="flex items-center gap-4 px-4 py-4 animate-pulse">
                 <div className="flex-1 space-y-2">
                   <div className="h-4 bg-gray-200 rounded w-2/3"/>
                   <div className="h-3 bg-gray-100 rounded w-full"/>
@@ -142,64 +208,50 @@ export default function OrderPage() {
           </div>
         ) : (
           <>
-            <div className="px-4 pt-4 pb-2">
-              <div className="flex items-center justify-between">
-                <h2 className="text-base font-bold text-gray-900">
-                  {CATEGORIES.find(c => c.key === activeCategory)?.label} ({filtered.length})
-                </h2>
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
-                </svg>
-              </div>
-            </div>
-
-            <div className="divide-y divide-gray-100">
-              {filtered.map(item => (
-                <button key={item.id}
-                  onClick={() => !item.sold_out && setSelectedItem(item)}
-                  className={`w-full flex items-center gap-4 px-4 py-4 text-left transition active:bg-gray-50 ${item.sold_out ? 'opacity-50' : ''}`}>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900 text-sm leading-snug">{item.name}</p>
-                    {item.description && (
-                      <p className="text-xs text-gray-400 mt-0.5 line-clamp-2 leading-relaxed">{item.description}</p>
-                    )}
-                    <p className="text-sm font-semibold text-gray-800 mt-1.5">
-                      ${item.price_small?.toFixed(2)}
-                      {item.price_large ? `+` : ''}
-                    </p>
-                    {item.sold_out && (
-                      <span className="text-xs text-red-500 font-medium">Sold Out</span>
-                    )}
-                  </div>
-                  {/* Item image placeholder */}
-                  <div className="w-20 h-20 rounded-xl bg-orange-50 flex items-center justify-center text-4xl flex-shrink-0 relative">
-                    {getDrinkEmoji(item.name)}
-                    {!item.sold_out && (
-                      <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#D62B2B] rounded-full flex items-center justify-center">
-                        <span className="text-white text-lg font-black leading-none mb-0.5">+</span>
-                      </div>
-                    )}
-                  </div>
-                </button>
-              ))}
-              {filtered.length === 0 && !loading && (
-                <div className="text-center py-16 text-gray-400">
-                  <p className="text-3xl mb-2">{activeCategory === 'bubble_tea' ? '🧋' : '🥟'}</p>
-                  <p className="text-sm">No items found</p>
+            {/* Signature section */}
+            {signature.length > 0 && (
+              <section id="section-signature" ref={el => { sectionRefs.current['section-signature'] = el }}>
+                <div className="px-4 pt-5 pb-2">
+                  <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide flex items-center gap-1.5">
+                    <span className="text-yellow-500">⭐</span> Signature Items
+                  </h2>
                 </div>
-              )}
-            </div>
+                <div className="divide-y divide-gray-100 mx-0">
+                  {filterBySearch(signature).map(item => <MenuRow key={item.id} item={item} />)}
+                </div>
+              </section>
+            )}
+
+            {/* Bubble Tea section */}
+            <section id="section-bubble-tea" ref={el => { sectionRefs.current['section-bubble-tea'] = el }}>
+              <div className="px-4 pt-5 pb-2">
+                <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide">🧋 Bubble Tea</h2>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {filterBySearch([...signature, ...bubbleteas]).map(item => <MenuRow key={item.id} item={item} />)}
+              </div>
+            </section>
+
+            {/* Dumplings section */}
+            <section id="section-dumplings" ref={el => { sectionRefs.current['section-dumplings'] = el }}>
+              <div className="px-4 pt-5 pb-2">
+                <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide">🥟 Dumplings</h2>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {filterBySearch(dumplings).map(item => <MenuRow key={item.id} item={item} />)}
+              </div>
+            </section>
           </>
         )}
       </main>
 
-      {/* Sticky checkout bar */}
+      {/* Checkout bar */}
       {cartCount > 0 && (
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 shadow-lg">
           <button onClick={() => setShowCheckout(true)}
             className="w-full bg-[#D62B2B] text-white font-bold py-4 rounded-2xl flex items-center justify-between px-5 text-sm">
             <span className="bg-red-700 rounded-lg px-2 py-0.5 text-xs font-black">{cartCount}</span>
-            <span className="font-bold">View Order</span>
+            <span>View Order</span>
             <span>${cartTotal.toFixed(2)}</span>
           </button>
         </div>
@@ -219,4 +271,3 @@ export default function OrderPage() {
     </div>
   )
 }
-// force deploy Tue Mar 31 19:36:23 EDT 2026
