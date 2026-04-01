@@ -144,10 +144,10 @@ export default function OrderPage() {
       </div>
 
       {/* Body — left sidebar + right content */}
-      <div className="flex flex-1 bg-white rounded-t-3xl overflow-hidden" style={{ height: 'calc(100vh - 120px)' }}>
+      <div className="flex bg-white rounded-t-3xl" style={{ height: 'calc(100vh - 120px)' }}>
 
-        {/* Left sidebar — FIXED, greys out inactive tabs */}
-        <nav className="w-24 flex-shrink-0 bg-white border-r border-gray-100 pt-4 overflow-hidden">
+        {/* Left sidebar — sticky, never scrolls */}
+        <nav className="w-24 flex-shrink-0 bg-white border-r border-gray-100 pt-4 sticky top-0 self-start h-screen overflow-hidden">
           {SECTIONS.map(sec => {
             const isActive = activeSection === sec.key
             return (
@@ -166,8 +166,8 @@ export default function OrderPage() {
           })}
         </nav>
 
-        {/* Right scrollable content */}
-        <main className="flex-1 overflow-y-auto pb-28">
+        {/* Right scrollable content — only this side scrolls */}
+        <main className="flex-1 overflow-y-auto pb-28 h-full">
 
           {loading ? (
             <div className="grid grid-cols-2 gap-3 p-3">
