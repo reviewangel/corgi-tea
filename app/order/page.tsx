@@ -87,8 +87,8 @@ export default function OrderPage() {
   }
 
   const signature  = menuItems.filter(i => (i as any).is_signature)
-  const bubbleteas = menuItems.filter(i => i.category === 'bubble_tea')
-  const dumplings  = menuItems.filter(i => i.category === 'dumpling')
+  const bubbleteas = menuItems.filter(i => i.category === 'bubble_tea' && !(i as any).is_signature)
+  const dumplings  = menuItems.filter(i => i.category === 'dumpling' && !(i as any).is_signature)
 
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0)
   const cartTotal = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0)
@@ -150,7 +150,7 @@ export default function OrderPage() {
       <div className="flex bg-white rounded-t-3xl" style={{ height: 'calc(100vh - 120px)' }}>
 
         {/* Left sidebar — sticky, never scrolls */}
-        <nav className="w-24 flex-shrink-0 bg-white border-r border-gray-100 pt-4 sticky top-0 self-start h-screen overflow-hidden">
+        <nav className="w-24 flex-shrink-0 bg-white border-r border-gray-100 pt-4 sticky top-0 self-start overflow-hidden" style={{ height: 'calc(100vh - 120px)' }}>
           {SECTIONS.map(sec => {
             const isActive = activeSection === sec.key
             return (
