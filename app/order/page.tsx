@@ -106,13 +106,14 @@ export default function OrderPage() {
     )
   }
 
-  function Grid({ items }: { items: MenuItemX[] }) {
+  function Grid({ items, sectionKey }: { items: MenuItemX[], sectionKey: string }) {
     if (!items.length) return null
+    const isActive = activeSection === sectionKey
     return (
-      <div className="grid grid-cols-2 gap-3 px-3 pb-4">
+      <div className={`grid grid-cols-2 gap-3 px-3 pb-4 transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-30'}`}>
         {items.map(item => (
-          <button key={item.id} onClick={() => !item.sold_out && setSelected(item)}
-            className={`bg-white rounded-2xl p-3 text-left transition active:scale-95 ${item.sold_out ? 'opacity-50' : ''}`}>
+          <button key={item.id} onClick={() => !item.sold_out && isActive && setSelected(item)}
+            className={`bg-white rounded-2xl p-3 text-left transition active:scale-95 ${item.sold_out ? 'opacity-50' : ''} ${!isActive ? 'pointer-events-none' : ''}`}>
             <ItemEmoji name={item.name} />
             <p className="text-xs font-bold text-gray-900 leading-snug line-clamp-2">{item.name}</p>
             {(item as any).is_signature && (
@@ -144,21 +145,27 @@ export default function OrderPage() {
       </div>
 
       {/* Body — left sidebar + right content */}
-      <div className="flex flex-1 bg-white rounded-t-3xl overflow-hidden">
+      <div className="flex flex-1 bg-white rounded-t-3xl overflow-hidden" style={{ height: 'calc(100vh - 120px)' }}>
 
-        {/* Left sidebar — category nav */}
-        <nav className="w-24 flex-shrink-0 bg-white border-r border-gray-100 pt-4">
-          {SECTIONS.map(sec => (
-            <button key={sec.key} onClick={() => scrollTo(sec)}
-              className={`w-full px-3 py-3 text-left transition ${activeSection === sec.key ? '' : ''}`}>
-              {activeSection === sec.key && (
-                <span className="block w-1 h-4 bg-orange-500 rounded-full mb-1 ml-0.5" />
-              )}
-              <span className={`text-xs font-semibold leading-tight block ${
-                activeSection === sec.key ? 'text-gray-900 font-black' : 'text-gray-400'
-              }`}>{sec.label}</span>
-            </button>
-          ))}
+        {/* Left sidebar — FIXED, never scrolls */}
+        <nav className="w-24 flex-shrink-0 bg-white border-r border-gray-100 pt-4 overflow-hidden">
+          {SECTIONS.map(sec => {
+            const isActive = activeSection === sec.key
+            return (
+              <button key={sec.key} onClick={() => scrollTo(sec)}
+                className={`w-full px-3 py-4 text-left transition-all relative ${
+                  isActive ? 'bg-white' : 'bg-gray-50'
+                }`}>
+                {/* Active orange bar on left */}
+                <span className={`absolute left-0 top-3 bottom-3 w-1 rounded-r-full transition-all ${
+                  isActive ? 'bg-orange-500' : 'bg-transparent'
+                }`} />
+                <span className={`text-xs leading-tight block transition-all ${
+                  isActive ? 'text-gray-900 font-black' : 'text-gray-400 font-medium'
+                }`}>{sec.label}</span>
+              </button>
+            )
+          })}
         </nav>
 
         {/* Right scrollable content */}
@@ -178,19 +185,19 @@ export default function OrderPage() {
             <>
               {signature.length > 0 && (
                 <section id="sec-signature" ref={el => { sectionRefs.current['sec-signature'] = el }}>
-                  <h2 className="px-3 pt-4 pb-2 text-base font-black text-gray-900">Signature</h2>
-                  <Grid items={signature} />
+                  <h2 className={`px-3 pt-4 pb-2 text-base font-black transition-colors ${activeSection === 'signature' ? 'text-gray-900' : 'text-gray-300'}`}>Signature</h2>
+                  <Grid items={signature} sectionKey="signature" />
                 </section>
               )}
 
               <section id="sec-bubble-tea" ref={el => { sectionRefs.current['sec-bubble-tea'] = el }}>
-                <h2 className="px-3 pt-4 pb-2 text-base font-black text-gray-900">Bubble Tea</h2>
-                <Grid items={bubbleteas} />
+                <h2 className={`px-3 pt-4 pb-2 text-base font-black transition-colors ${activeSection === 'bubble_tea' ? 'text-gray-900' : 'text-gray-300'}`}>Bubble Tea</h2>
+                <Grid items={bubbleteas} sectionKey="bubble_tea" />
               </section>
 
               <section id="sec-dumplings" ref={el => { sectionRefs.current['sec-dumplings'] = el }}>
-                <h2 className="px-3 pt-4 pb-2 text-base font-black text-gray-900">Dumplings</h2>
-                <Grid items={dumplings} />
+                <h2 className={`px-3 pt-4 pb-2 text-base font-black transition-colors ${activeSection === 'dumpling' ? 'text-gray-900' : 'text-gray-300'}`}>Dumplings</h2>
+                <Grid items={dumplings} sectionKey="dumpling" />
               </section>
             </>
           )}
