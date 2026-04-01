@@ -7,90 +7,85 @@ import { SUGAR_LEVELS, ICE_LEVELS, TOPPINGS } from '@/lib/menu'
 import ItemModal from '@/components/ItemModal'
 import CheckoutModal from '@/components/CheckoutModal'
 
-type MenuItemWithSignature = MenuItem & { is_signature?: boolean }
+type MenuItemX = MenuItem & { is_signature?: boolean }
 
 const SECTIONS = [
-  { key: 'signature', label: '⭐ Signature',  anchor: 'section-signature' },
-  { key: 'bubble_tea', label: '🧋 Bubble Tea', anchor: 'section-bubble-tea' },
-  { key: 'dumpling',   label: '🥟 Dumplings',  anchor: 'section-dumplings' },
+  { key: 'signature',  label: 'Signature',   anchor: 'sec-signature'  },
+  { key: 'bubble_tea', label: 'Bubble Tea',   anchor: 'sec-bubble-tea' },
+  { key: 'dumpling',   label: 'Dumplings',    anchor: 'sec-dumplings'  },
 ]
 
-function getDrinkEmoji(name: string) {
-  const n = name.toLowerCase()
-  if (n.includes('taro'))       return '🟣'
-  if (n.includes('matcha'))     return '🍵'
-  if (n.includes('strawberry')) return '🍓'
-  if (n.includes('mango'))      return '🥭'
-  if (n.includes('passion'))    return '🌺'
-  if (n.includes('brown sugar'))return '🧋'
-  if (n.includes('dumpling') || n.includes('pork') || n.includes('veggie')) return '🥟'
-  return '🧋'
+const DRINK_IMAGES: Record<string, string> = {
+  'Classic Milk Tea':      '☕',
+  'Taro Milk Tea':         '🟣',
+  'Matcha Milk Tea':       '🍵',
+  'Brown Sugar Boba':      '🧋',
+  'Strawberry Fruit Tea':  '🍓',
+  'Mango Fruit Tea':       '🥭',
+  'Passion Fruit Tea':     '🌺',
+  'Pork & Cabbage':        '🥟',
+  'Veggie Dumplings':      '🥟',
+}
+
+function ItemEmoji({ name }: { name: string }) {
+  const emoji = DRINK_IMAGES[name] ?? '🧋'
+  return (
+    <div className="w-full aspect-square bg-orange-50 rounded-2xl flex items-center justify-center text-5xl mb-2">
+      {emoji}
+    </div>
+  )
 }
 
 export default function OrderPage() {
-  const [menuItems, setMenuItems] = useState<MenuItemWithSignature[]>([])
+  const [menuItems, setMenuItems] = useState<MenuItemX[]>([])
   const [cart, setCart] = useState<CartItem[]>([])
-  const [selectedItem, setSelectedItem] = useState<MenuItemWithSignature | null>(null)
+  const [selected, setSelected] = useState<MenuItemX | null>(null)
   const [showCheckout, setShowCheckout] = useState(false)
-  const [search, setSearch] = useState('')
-  const [loading, setLoading] = useState(true)
   const [activeSection, setActiveSection] = useState('signature')
+  const [loading, setLoading] = useState(true)
   const [orderPlaced, setOrderPlaced] = useState<{ number: number; name: string } | null>(null)
 
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
-  const scrollRef = useRef<HTMLDivElement>(null)
   const supabaseRef = useRef<ReturnType<typeof createBrowserSupabase> | null>(null)
-
   function getDb() {
     if (!supabaseRef.current) supabaseRef.current = createBrowserSupabase()
     return supabaseRef.current
   }
 
   useEffect(() => {
-    getDb()
-      .from('corgi_menu_items')
-      .select('*')
-      .eq('available', true)
-      .order('display_order')
+    getDb().from('corgi_menu_items').select('*').eq('available', true).order('display_order')
       .then(({ data }) => { setMenuItems(data ?? []); setLoading(false) })
 
-    const channel = getDb().channel('menu-live')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'corgi_menu_items' }, (payload) => {
-        setMenuItems(prev => prev.map(i => i.id === payload.new.id ? { ...i, ...payload.new } : i))
+    const ch = getDb().channel('menu-live')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'corgi_menu_items' }, (p) => {
+        setMenuItems(prev => prev.map(i => i.id === p.new.id ? { ...i, ...p.new } : i))
       }).subscribe()
-    return () => { getDb().removeChannel(channel) }
+    return () => { getDb().removeChannel(ch) }
   }, [])
 
-  // Scroll to section when tab clicked
-  function scrollToSection(anchor: string, key: string) {
-    setActiveSection(key)
-    const el = sectionRefs.current[anchor]
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
-
-  // Update active tab on scroll
+  // Scroll spy
   useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const sec = SECTIONS.find(s => s.anchor === entry.target.id)
+    if (!menuItems.length) return
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          const sec = SECTIONS.find(s => s.anchor === e.target.id)
           if (sec) setActiveSection(sec.key)
         }
       })
-    }, { threshold: 0.3, rootMargin: '-80px 0px -60% 0px' })
-
-    Object.values(sectionRefs.current).forEach(el => { if (el) observer.observe(el) })
-    return () => observer.disconnect()
+    }, { threshold: 0.2, rootMargin: '-100px 0px -55% 0px' })
+    Object.values(sectionRefs.current).forEach(el => el && obs.observe(el))
+    return () => obs.disconnect()
   }, [menuItems])
 
-  const signature = menuItems.filter(i => i.is_signature)
-  const bubbleteas = menuItems.filter(i => i.category === 'bubble_tea' && !i.is_signature)
-  const dumplings = menuItems.filter(i => i.category === 'dumpling')
-
-  function filterBySearch(items: MenuItemWithSignature[]) {
-    if (!search) return items
-    return items.filter(i => i.name.toLowerCase().includes(search.toLowerCase()))
+  function scrollTo(sec: typeof SECTIONS[0]) {
+    setActiveSection(sec.key)
+    sectionRefs.current[sec.anchor]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
+
+  const signature  = menuItems.filter(i => (i as any).is_signature)
+  const bubbleteas = menuItems.filter(i => i.category === 'bubble_tea')
+  const dumplings  = menuItems.filter(i => i.category === 'dumpling')
 
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0)
   const cartTotal = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0)
@@ -98,169 +93,126 @@ export default function OrderPage() {
   if (orderPlaced) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
-        <div className="text-7xl mb-6">🎉</div>
-        <p className="text-gray-500 text-sm mb-2 uppercase tracking-widest font-medium">Order Confirmed</p>
-        <div className="text-8xl font-black text-gray-900 mb-2">#{orderPlaced.number}</div>
-        <p className="text-gray-600 text-lg mb-1">Hi <strong>{orderPlaced.name}</strong>!</p>
+        <div className="text-7xl mb-4">🎉</div>
+        <p className="text-xs text-gray-400 uppercase tracking-widest mb-2">Order Confirmed</p>
+        <div className="text-8xl font-black text-gray-900 mb-3">#{orderPlaced.number}</div>
+        <p className="text-gray-500 mb-1">Hi <strong>{orderPlaced.name}</strong>!</p>
         <p className="text-gray-400 text-sm mb-8">We'll call your number when it's ready 🔔</p>
         <button onClick={() => { setOrderPlaced(null); setCart([]) }}
-          className="bg-[#D62B2B] text-white font-bold px-8 py-3 rounded-full text-sm">
+          className="bg-orange-500 text-white font-bold px-10 py-3 rounded-full">
           Order Again
         </button>
       </div>
     )
   }
 
-  function MenuRow({ item }: { item: MenuItemWithSignature }) {
+  function Grid({ items }: { items: MenuItemX[] }) {
+    if (!items.length) return null
     return (
-      <button
-        onClick={() => !item.sold_out && setSelectedItem(item)}
-        className={`w-full flex items-center gap-4 px-4 py-4 text-left transition active:bg-gray-50 border-b border-gray-100 last:border-0 ${item.sold_out ? 'opacity-50' : ''}`}>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            {item.is_signature && <span className="text-yellow-500 text-xs">⭐</span>}
-            <p className="font-semibold text-gray-900 text-sm leading-snug">{item.name}</p>
-          </div>
-          {item.description && (
-            <p className="text-xs text-gray-400 mt-0.5 line-clamp-2 leading-relaxed">{item.description}</p>
-          )}
-          <p className="text-sm font-bold text-gray-800 mt-1.5">
-            ${item.price_small?.toFixed(2)}
-            {item.price_large ? ' – $' + item.price_large.toFixed(2) : ''}
-          </p>
-          {item.sold_out && <span className="text-xs text-red-500 font-medium">Sold Out</span>}
-        </div>
-        <div className="w-20 h-20 rounded-xl bg-orange-50 flex items-center justify-center text-4xl flex-shrink-0 relative">
-          {getDrinkEmoji(item.name)}
-          {!item.sold_out && (
-            <div className="absolute -bottom-1.5 -right-1.5 w-6 h-6 bg-[#D62B2B] rounded-full flex items-center justify-center shadow">
-              <span className="text-white text-lg font-black leading-none">+</span>
-            </div>
-          )}
-        </div>
-      </button>
+      <div className="grid grid-cols-2 gap-3 px-3 pb-4">
+        {items.map(item => (
+          <button key={item.id} onClick={() => !item.sold_out && setSelected(item)}
+            className={`bg-white rounded-2xl p-3 text-left transition active:scale-95 ${item.sold_out ? 'opacity-50' : ''}`}>
+            <ItemEmoji name={item.name} />
+            <p className="text-xs font-bold text-gray-900 leading-snug line-clamp-2">{item.name}</p>
+            {(item as any).is_signature && (
+              <span className="inline-block bg-orange-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded mt-0.5 uppercase tracking-wide">Signature</span>
+            )}
+            <p className="text-xs font-bold text-gray-700 mt-1">${item.price_small?.toFixed(2)}{item.price_large ? '+' : ''}</p>
+            {item.sold_out && <p className="text-[10px] text-red-500 font-medium mt-0.5">Sold Out</p>}
+          </button>
+        ))}
+      </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen flex flex-col bg-orange-500">
+
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 px-4 pt-4 pb-0 sticky top-0 z-20 shadow-sm">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-full bg-[#D62B2B] flex items-center justify-center text-xl flex-shrink-0">🐾</div>
-          <div className="flex-1">
-            <h1 className="text-base font-black text-gray-900">Corgi Tea</h1>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="w-2 h-2 rounded-full bg-green-400 inline-block"></span>
-              <span className="text-xs text-gray-500">Open · Pickup 5–10 min</span>
-            </div>
-          </div>
+      <div className="px-5 pt-10 pb-5 bg-orange-500">
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="text-2xl font-black text-white tracking-tight">🐾 CORGI TEA</h1>
           {cartCount > 0 && (
             <button onClick={() => setShowCheckout(true)}
-              className="bg-[#D62B2B] text-white text-xs font-bold px-4 py-2 rounded-full flex items-center gap-1.5 flex-shrink-0">
+              className="bg-white text-orange-500 font-black text-xs px-4 py-2 rounded-full flex items-center gap-1.5">
               🛒 {cartCount} · ${cartTotal.toFixed(2)}
             </button>
           )}
         </div>
-
-        {/* Category tabs — scroll spy */}
-        <div className="flex gap-0 overflow-x-auto scrollbar-hide -mx-4 px-4">
-          {SECTIONS.map(sec => (
-            <button key={sec.key}
-              onClick={() => scrollToSection(sec.anchor, sec.key)}
-              className={`flex-shrink-0 py-2.5 px-4 text-sm font-semibold border-b-2 transition-all whitespace-nowrap ${
-                activeSection === sec.key
-                  ? 'border-[#D62B2B] text-[#D62B2B]'
-                  : 'border-transparent text-gray-400'
-              }`}>
-              {sec.label}
-            </button>
-          ))}
-        </div>
-      </header>
-
-      {/* Search */}
-      <div className="px-4 py-3 bg-white border-b border-gray-100">
-        <div className="flex items-center gap-2 bg-gray-100 rounded-full px-4 py-2.5">
-          <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-          </svg>
-          <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search menu…"
-            className="bg-transparent text-sm text-gray-700 flex-1 focus:outline-none"/>
-        </div>
+        <p className="text-orange-100 text-sm">Bubble Tea & Dumplings · Pick Up</p>
       </div>
 
-      {/* Full menu — all sections on one page */}
-      <main className="flex-1 pb-28">
-        {loading ? (
-          <div className="divide-y divide-gray-100">
-            {[1,2,3,4,5].map(i => (
-              <div key={i} className="flex items-center gap-4 px-4 py-4 animate-pulse">
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-2/3"/>
-                  <div className="h-3 bg-gray-100 rounded w-full"/>
-                  <div className="h-3 bg-gray-100 rounded w-1/4"/>
+      {/* Body — left sidebar + right content */}
+      <div className="flex flex-1 bg-white rounded-t-3xl overflow-hidden">
+
+        {/* Left sidebar — category nav */}
+        <nav className="w-24 flex-shrink-0 bg-white border-r border-gray-100 pt-4">
+          {SECTIONS.map(sec => (
+            <button key={sec.key} onClick={() => scrollTo(sec)}
+              className={`w-full px-3 py-3 text-left transition ${activeSection === sec.key ? '' : ''}`}>
+              {activeSection === sec.key && (
+                <span className="block w-1 h-4 bg-orange-500 rounded-full mb-1 ml-0.5" />
+              )}
+              <span className={`text-xs font-semibold leading-tight block ${
+                activeSection === sec.key ? 'text-gray-900 font-black' : 'text-gray-400'
+              }`}>{sec.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        {/* Right scrollable content */}
+        <main className="flex-1 overflow-y-auto pb-28">
+
+          {loading ? (
+            <div className="grid grid-cols-2 gap-3 p-3">
+              {[1,2,3,4].map(i => (
+                <div key={i} className="bg-orange-50 rounded-2xl p-3 animate-pulse">
+                  <div className="aspect-square bg-orange-100 rounded-xl mb-2"/>
+                  <div className="h-3 bg-orange-100 rounded w-3/4 mb-1"/>
+                  <div className="h-3 bg-orange-100 rounded w-1/3"/>
                 </div>
-                <div className="w-20 h-20 bg-gray-200 rounded-xl flex-shrink-0"/>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <>
-            {/* Signature section */}
-            {signature.length > 0 && (
-              <section id="section-signature" ref={el => { sectionRefs.current['section-signature'] = el }}>
-                <div className="px-4 pt-5 pb-2">
-                  <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide flex items-center gap-1.5">
-                    <span className="text-yellow-500">⭐</span> Signature Items
-                  </h2>
-                </div>
-                <div className="divide-y divide-gray-100 mx-0">
-                  {filterBySearch(signature).map(item => <MenuRow key={item.id} item={item} />)}
-                </div>
+              ))}
+            </div>
+          ) : (
+            <>
+              {signature.length > 0 && (
+                <section id="sec-signature" ref={el => { sectionRefs.current['sec-signature'] = el }}>
+                  <h2 className="px-3 pt-4 pb-2 text-base font-black text-gray-900">Signature</h2>
+                  <Grid items={signature} />
+                </section>
+              )}
+
+              <section id="sec-bubble-tea" ref={el => { sectionRefs.current['sec-bubble-tea'] = el }}>
+                <h2 className="px-3 pt-4 pb-2 text-base font-black text-gray-900">Bubble Tea</h2>
+                <Grid items={bubbleteas} />
               </section>
-            )}
 
-            {/* Bubble Tea section */}
-            <section id="section-bubble-tea" ref={el => { sectionRefs.current['section-bubble-tea'] = el }}>
-              <div className="px-4 pt-5 pb-2">
-                <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide">🧋 Bubble Tea</h2>
-              </div>
-              <div className="divide-y divide-gray-100">
-                {filterBySearch([...signature, ...bubbleteas]).map(item => <MenuRow key={item.id} item={item} />)}
-              </div>
-            </section>
-
-            {/* Dumplings section */}
-            <section id="section-dumplings" ref={el => { sectionRefs.current['section-dumplings'] = el }}>
-              <div className="px-4 pt-5 pb-2">
-                <h2 className="text-sm font-black text-gray-900 uppercase tracking-wide">🥟 Dumplings</h2>
-              </div>
-              <div className="divide-y divide-gray-100">
-                {filterBySearch(dumplings).map(item => <MenuRow key={item.id} item={item} />)}
-              </div>
-            </section>
-          </>
-        )}
-      </main>
+              <section id="sec-dumplings" ref={el => { sectionRefs.current['sec-dumplings'] = el }}>
+                <h2 className="px-3 pt-4 pb-2 text-base font-black text-gray-900">Dumplings</h2>
+                <Grid items={dumplings} />
+              </section>
+            </>
+          )}
+        </main>
+      </div>
 
       {/* Checkout bar */}
       {cartCount > 0 && (
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 shadow-lg">
           <button onClick={() => setShowCheckout(true)}
-            className="w-full bg-[#D62B2B] text-white font-bold py-4 rounded-2xl flex items-center justify-between px-5 text-sm">
-            <span className="bg-red-700 rounded-lg px-2 py-0.5 text-xs font-black">{cartCount}</span>
+            className="w-full bg-orange-500 text-white font-black py-4 rounded-2xl flex items-center justify-between px-5 text-sm">
+            <span className="bg-orange-600 rounded-lg px-2 py-0.5 text-xs font-black">{cartCount}</span>
             <span>View Order</span>
             <span>${cartTotal.toFixed(2)}</span>
           </button>
         </div>
       )}
 
-      {selectedItem && (
-        <ItemModal item={selectedItem} sugarLevels={SUGAR_LEVELS} iceLevels={ICE_LEVELS} toppings={TOPPINGS}
-          onAdd={item => { setCart(prev => [...prev, item]); setSelectedItem(null) }}
-          onClose={() => setSelectedItem(null)} />
+      {selected && (
+        <ItemModal item={selected} sugarLevels={SUGAR_LEVELS} iceLevels={ICE_LEVELS} toppings={TOPPINGS}
+          onAdd={item => { setCart(prev => [...prev, item]); setSelected(null) }}
+          onClose={() => setSelected(null)} />
       )}
 
       {showCheckout && (
