@@ -152,10 +152,10 @@ export default function OrderPage() {
             const isActive = activeSection === sec.key
             return (
               <button key={sec.key} onClick={() => scrollTo(sec)}
-                className={`w-full px-3 py-4 text-left transition-all relative ${
+                className={`w-full px-3 py-7 text-left transition-all relative ${
                   isActive ? 'bg-white' : 'bg-gray-50 opacity-40'
                 }`}>
-                <span className={`absolute left-0 top-3 bottom-3 w-1 rounded-r-full transition-all ${
+                <span className={`absolute left-0 top-4 bottom-4 w-1 rounded-r-full transition-all ${
                   isActive ? 'bg-orange-500' : 'bg-transparent'
                 }`} />
                 <span className={`text-xs leading-tight block transition-all ${
